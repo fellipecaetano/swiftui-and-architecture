@@ -3,11 +3,7 @@ import PlaygroundSupport
 import Combine
 
 struct ContentView: View {
-  @ObjectBinding private var state: AppState
-
-  init (state: AppState) {
-    self.state = state
-  }
+  @ObjectBinding var state: AppState
 
   var body: some View {
     NavigationView {
@@ -26,12 +22,8 @@ struct ContentView: View {
 }
 
 struct CounterView: View {
-  @ObjectBinding private var state: AppState
-  @State private var isModalVisible = false
-
-  init (state: AppState) {
-    self.state = state
-  }
+  @ObjectBinding var state: AppState
+  @State var isModalVisible = false
 
   var body: some View {
     VStack {
@@ -78,9 +70,56 @@ struct CounterView: View {
       Spacer()
     }
     .sheet(isPresented: self.$isModalVisible) {
-      IsPrimeModalView(state: self.state)
+      PrimeVerificationModalView(state: self.state)
     }
     .navigationBarTitle("Contador", displayMode: .inline)
+  }
+}
+
+struct PrimeVerificationModalView: View {
+  @ObjectBinding var state: AppState
+
+  var body: some View {
+    return VStack {
+      if isPrime(self.state.count) {
+        Text("\(self.state.count) é primo! 🎉")
+          .padding(.bottom, 24)
+
+        if self.state.favoritePrimes.contains(self.state.count) {
+          Button(action: {
+            self.state.favoritePrimes.removeAll {
+              $0 == self.state.count
+            }
+          }) {
+            Text("Remover dos favoritos")
+          }
+        } else {
+          Button(action: {
+            self.state.favoritePrimes.append(self.state.count)
+          }) {
+            Text("Adicionar aos favoritos")
+          }
+        }
+      } else {
+        Text("\(self.state.count) não é primo... ☹️")
+      }
+    }
+  }
+}
+
+struct FavoritePrimesView: View {
+  @ObjectBinding var state: AppState
+
+  var body: some View {
+    List {
+      ForEach(self.state.favoritePrimes) { prime in
+        Text("\(prime)")
+      }
+      .onDelete { indexSet in
+        self.state.favoritePrimes.remove(atOffsets: indexSet)
+      }
+    }
+    .navigationBarTitle("Favoritos", displayMode: .inline)
   }
 }
 
@@ -96,41 +135,6 @@ class AppState: BindableObject {
   var favoritePrimes: [Int] = [] {
     willSet {
       willChange.send()
-    }
-  }
-}
-
-struct IsPrimeModalView: View {
-  @ObjectBinding private var state: AppState
-
-  init (state: AppState) {
-    self.state = state
-  }
-
-  var body: some View {
-    return VStack {
-      if isPrime(self.state.count) {
-        Text("\(self.state.count) é primo! 🎉")
-          .padding(.bottom, 24)
-
-        Button(action: {
-          if self.state.favoritePrimes.contains(self.state.count) {
-            self.state.favoritePrimes.removeAll(where: {
-              $0 == self.state.count
-            })
-          } else {
-            self.state.favoritePrimes.append(self.state.count)
-          }
-        }) {
-          if self.state.favoritePrimes.contains(self.state.count) {
-            Text("Remover dos favoritos")
-          } else {
-            Text("Adicionar aos favoritos")
-          }
-        }
-      } else {
-        Text("\(self.state.count) não é primo... ☹️")
-      }
     }
   }
 }
@@ -151,26 +155,6 @@ private func isPrime (_ p: Int) -> Bool {
   }
 
   return true
-}
-
-struct FavoritePrimesView: View {
-  @ObjectBinding private var state: AppState
-
-  init (state: AppState) {
-    self.state = state
-  }
-
-  var body: some View {
-    List {
-      ForEach(self.state.favoritePrimes) { prime in
-        Text("\(prime)")
-      }
-      .onDelete { indexSet in
-        self.state.favoritePrimes.remove(atOffsets: indexSet)
-      }
-    }
-    .navigationBarTitle("Favoritos", displayMode: .inline)
-  }
 }
 
 PlaygroundPage.current.liveView = UIHostingController(
